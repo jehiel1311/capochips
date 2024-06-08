@@ -6,8 +6,12 @@ const scoreDisplay = document.getElementById('score');
 const gameOverScreen = document.getElementById('gameOverScreen');
 
 let player, obstacles, frameCount, gameOver, jumpCount, score;
+let speed = 3;
 const playerImage = new Image();
 playerImage.src = 'player.png'; // Asegúrate de tener un archivo player.png en el mismo directorio
+
+const player2Image = new Image();
+player2Image.src = 'player2.png'; // Asegúrate de tener un archivo player2.png en el mismo directorio
 
 const obstacleImage = new Image();
 obstacleImage.src = 'objeto1.png'; // Asegúrate de tener un archivo objeto1.png en el mismo directorio
@@ -15,25 +19,44 @@ obstacleImage.src = 'objeto1.png'; // Asegúrate de tener un archivo objeto1.png
 const obstacle2Image = new Image();
 obstacle2Image.src = 'obstaculo1.png'; // Asegúrate de tener un archivo obstaculo1.png en el mismo directorio
 
+const obstacle3Image = new Image();
+obstacle3Image.src = 'obstaculo2.png'; // Asegúrate de tener un archivo obstaculo2.png en el mismo directorio
+
 const backgroundImage = new Image();
 backgroundImage.src = 'holdem_table.png'; // Asegúrate de tener el archivo con este nombre en el mismo directorio
 
 backgroundImage.onload = () => {
     drawBackground();
     startButton.style.display = 'block';
+    resizeCanvas();
 };
+
+window.addEventListener('resize', resizeCanvas);
+
+function resizeCanvas() {
+    const aspectRatio = 2; // Ancho/Alto del canvas (800/400)
+    const width = window.innerWidth > 800 ? 800 : window.innerWidth;
+    const height = width / aspectRatio;
+    canvas.width = width;
+    canvas.height = height;
+    if (!gameOver) {
+        drawBackground();
+        drawPlayer();
+    }
+}
 
 // Initialize game variables
 function initGame() {
     player = {
         x: 50,
-        y: 300,
-        width: 100, // Doble del tamaño original
-        height: 100, // Doble del tamaño original
+        y: canvas.height - 150,
+        width: 100,
+        height: 100,
         dy: 0,
         gravity: 0.5,
-        jumpPower: -15, // Aumenta la potencia del salto
-        grounded: false
+        jumpPower: -15,
+        grounded: false,
+        currentImage: playerImage
     };
 
     obstacles = [];
@@ -41,6 +64,7 @@ function initGame() {
     gameOver = false;
     jumpCount = 0;
     score = 0;
+    speed = 3;
     scoreDisplay.textContent = `Chips: ${score}`;
 
     startButton.style.display = 'none';
@@ -49,7 +73,7 @@ function initGame() {
     gameLoop();
 }
 
-// Key press events
+// Key press and touch events
 let keys = {};
 
 document.addEventListener('keydown', (e) => {
@@ -59,10 +83,24 @@ document.addEventListener('keydown', (e) => {
         player.grounded = false;
         jumpCount++;
     }
+    if (e.code === 'ArrowRight') {
+        speed = 5; // Incrementa la velocidad al presionar la flecha derecha
+    }
 });
 
 document.addEventListener('keyup', (e) => {
     keys[e.code] = false;
+    if (e.code === 'ArrowRight') {
+        speed = 3; // Vuelve a la velocidad normal al soltar la flecha derecha
+    }
+});
+
+canvas.addEventListener('touchstart', () => {
+    if (jumpCount < 2) {
+        player.dy = player.jumpPower;
+        player.grounded = false;
+        jumpCount++;
+    }
 });
 
 // Game loop
@@ -90,7 +128,7 @@ function drawBackground() {
 
 // Draw player
 function drawPlayer() {
-    ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+    ctx.drawImage(player.currentImage, player.x, player.y, player.width, player.height);
 }
 
 // Update player
@@ -109,27 +147,43 @@ function updatePlayer() {
 // Handle obstacles
 function handleObstacles() {
     if (frameCount % 120 === 0) {
-        let obstacleHeight = 75; // Altura del obstáculo
+        let obstacleHeight = 75 ; // Altura del obstáculo
         obstacles.push({
             x: canvas.width,
             y: canvas.height - obstacleHeight, // Ajusta la posición del obstáculo
-            width: 75, // 50% más grande que el tamaño original
-            height: 75, // 50% más grande que el tamaño original
-            dx: -3,
-            image: obstacleImage
+            width: 75,
+            height: 75,
+            dx: -speed,
+            image: obstacleImage,
+            type: 'normal'
         });
     }
 
     // Add a second type of obstacle every 300 frames
     if (frameCount % 300 === 0) {
-        let obstacleHeight = 100; // Altura del obstáculo
+        let obstacleHeight = 125; // Altura del obstáculo
         obstacles.push({
             x: canvas.width,
             y: canvas.height - obstacleHeight, // Ajusta la posición del obstáculo
-            width: 100, // Doble del tamaño original
-            height: 100, // Doble del tamaño original
-            dx: -3,
-            image: obstacle2Image
+            width: 125, // Mismo tamaño que obstáculo original
+            height: 125, // Mismo tamaño que obstáculo original
+            dx: -speed,
+            image: obstacle2Image,
+            type: 'bad'
+        });
+    }
+
+    // Add a third type of obstacle every 500 frames
+    if (frameCount % 500 === 0) {
+        let obstacleHeight = 125; // Altura del obstáculo
+        obstacles.push({
+            x: canvas.width,
+            y: canvas.height - obstacleHeight, // Ajusta la posición del obstáculo
+            width: 125, // Mismo tamaño que obstáculo original
+            height: 125, // Mismo tamaño que obstáculo original
+            dx: -speed,
+            image: obstacle3Image,
+            type: 'good'
         });
     }
 
@@ -149,15 +203,19 @@ function handleObstacles() {
             player.y < obstacle.y + obstacle.height &&
             player.y + player.height > obstacle.y
         ) {
-            if (obstacle.image === obstacleImage) {
+            if (obstacle.type === 'normal') {
                 score++;
-            } else if (obstacle.image === obstacle2Image) {
+            } else if (obstacle.type === 'bad') {
                 score -= 10;
+                player.currentImage = playerImage;
                 if (score < 0) {
                     score = 0;
                     gameOver = true;
                     gameOverScreen.style.display = 'flex';
                 }
+            } else if (obstacle.type === 'good') {
+                score += 10;
+                player.currentImage = player2Image;
             }
             scoreDisplay.textContent = `Chips: ${score}`;
             obstacles.splice(index, 1);
