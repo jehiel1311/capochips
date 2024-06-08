@@ -31,6 +31,18 @@ canvas {
     margin-top: 10px;
 }
 
+#progressBarContainer {
+    width: 100%;
+    background-color: #ccc;
+    margin-top: 10px;
+}
+
+#progressBar {
+    width: 0;
+    height: 20px;
+    background-color: green;
+}
+
 button {
     margin: 10px;
     padding: 10px 20px;
@@ -44,10 +56,18 @@ button:hover {
     background-color: #444;
 }
 
-#gameOverScreen {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+#gameOverScreen, #levelCompleteScreen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border-radius: 10px;
     color: white;
+    text-align: center;
+}
+
+#gameOverScreen h1, #levelCompleteScreen h1 {
+    margin: 0 0 20px 0;
 }

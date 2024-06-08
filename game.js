@@ -5,7 +5,7 @@ const restartButton = document.getElementById('continueButton');
 const scoreDisplay = document.getElementById('score');
 const gameOverScreen = document.getElementById('gameOverScreen');
 
-let player, obstacles, frameCount, gameOver, jumpCount, score;
+let player, obstacles, frameCount, gameOver, jumpCount, score, level, levelCompleted;
 let speed = 3;
 const playerImage = new Image();
 playerImage.src = 'player.png'; // Asegúrate de tener un archivo player.png en el mismo directorio
@@ -64,6 +64,8 @@ function initGame() {
     gameOver = false;
     jumpCount = 0;
     score = 0;
+    level = 1;
+    levelCompleted = false;
     speed = 3;
     scoreDisplay.textContent = `Chips: ${score}`;
 
@@ -105,7 +107,7 @@ canvas.addEventListener('touchstart', () => {
 
 // Game loop
 function gameLoop() {
-    if (gameOver) return;
+    if (gameOver || levelCompleted) return;
 
     frameCount++;
     clearCanvas();
@@ -113,6 +115,7 @@ function gameLoop() {
     drawPlayer();
     updatePlayer();
     handleObstacles();
+    updateProgressBar();
     requestAnimationFrame(gameLoop);
 }
 
@@ -136,18 +139,23 @@ function updatePlayer() {
     player.dy += player.gravity;
     player.y += player.dy;
 
+    // Limit player's y position
     if (player.y + player.height > canvas.height) {
         player.y = canvas.height - player.height;
         player.dy = 0;
         player.grounded = true;
         jumpCount = 0;
+    } else if (player.y < 0) {
+        player.y = 0;
+        player.dy = 0;
     }
 }
 
 // Handle obstacles
 function handleObstacles() {
-    if (frameCount % 120 === 0) {
-        let obstacleHeight = 75 ; // Altura del obstáculo
+    let obstacleFrequency = level === 1 ? 120 : 80; // Frecuencia de los obstáculos según el nivel
+    if (frameCount % obstacleFrequency === 0) {
+        let obstacleHeight = 75; // Altura del obstáculo
         obstacles.push({
             x: canvas.width,
             y: canvas.height - obstacleHeight, // Ajusta la posición del obstáculo
@@ -159,8 +167,8 @@ function handleObstacles() {
         });
     }
 
-    // Add a second type of obstacle every 300 frames
-    if (frameCount % 300 === 0) {
+    // Add a second type of obstacle every 300 frames (150 en nivel 2)
+    if (frameCount % (level === 1 ? 300 : 150) === 0) {
         let obstacleHeight = 125; // Altura del obstáculo
         obstacles.push({
             x: canvas.width,
@@ -173,8 +181,8 @@ function handleObstacles() {
         });
     }
 
-    // Add a third type of obstacle every 500 frames
-    if (frameCount % 500 === 0) {
+    // Add a third type of obstacle every 500 frames (200 en nivel 2)
+    if (frameCount % (level === 1 ? 500 : 200) === 0) {
         let obstacleHeight = 125; // Altura del obstáculo
         obstacles.push({
             x: canvas.width,
@@ -198,10 +206,10 @@ function handleObstacles() {
 
         // Collision detection and score increment/decrement
         if (
-            player.x < obstacle.x + obstacle.width &&
-            player.x + player.width > obstacle.x &&
-            player.y < obstacle.y + obstacle.height &&
-            player.y + player.height > obstacle.y
+            player.x + 10 < obstacle.x + obstacle.width - 10 &&
+            player.x + player.width - 10 > obstacle.x + 10 &&
+            player.y + 10 < obstacle.y + obstacle.height - 10 &&
+            player.y + player.height - 10 > obstacle.y + 10
         ) {
             if (obstacle.type === 'normal') {
                 score++;
@@ -219,10 +227,55 @@ function handleObstacles() {
             }
             scoreDisplay.textContent = `Chips: ${score}`;
             obstacles.splice(index, 1);
+
+            // Check level completion
+            checkLevelCompletion();
         }
     });
+}
+
+// Update progress bar
+function updateProgressBar() {
+    const progressBar = document.getElementById('progressBar');
+    const progress = Math.min(score / (level * 100), 1);
+    progressBar.style.width = `${progress * 100}%`;
+}
+
+// Check level completion
+function checkLevelCompletion() {
+    if (score >= level * 100) {
+        levelCompleted = true;
+        let levelMessage = level === 1 ? "Felicidades, ya no eres un pececito!" : "Felicidades, Tiburón!";
+        showLevelCompleteScreen(levelMessage);
+    }
+}
+
+function showLevelCompleteScreen(message) {
+    const levelCompleteScreen = document.getElementById('levelCompleteScreen');
+    const levelMessage = document.getElementById('levelMessage');
+    levelMessage.textContent = message;
+    levelCompleteScreen.style.display = 'flex';
+    if (level === 2) {
+        document.getElementById('nextLevelButton').textContent = 'Volver a empezar';
+        level = 1; // Reset level
+    }
+}
+
+function continueToNextLevel() {
+    if (levelCompleted && level === 2) {
+        // Reset game
+        initGame();
+    } else {
+        level++;
+        score = 0;
+        speed = level === 2 ? 4 : 5; // Incrementar la velocidad en cada nivel
+        levelCompleted = false;
+        document.getElementById('levelCompleteScreen').style.display = 'none';
+        gameLoop();
+    }
 }
 
 // Start game
 startButton.addEventListener('click', initGame);
 restartButton.addEventListener('click', initGame);
+document.getElementById('nextLevelButton').addEventListener('click', continueToNextLevel);

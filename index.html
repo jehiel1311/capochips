@@ -10,10 +10,17 @@
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="score">Chips: 0</div>
+        <div id="progressBarContainer">
+            <div id="progressBar"></div>
+        </div>
         <button id="startButton">Start Game</button>
         <div id="gameOverScreen" style="display:none;">
             <h1>Game Over</h1>
             <button id="continueButton">Continue</button>
+        </div>
+        <div id="levelCompleteScreen" style="display:none;">
+            <h1 id="levelMessage"></h1>
+            <button id="nextLevelButton">Next Level</button>
         </div>
     </div>
     <script src="game.js"></script>
